@@ -1,0 +1,13 @@
+name: stiffness
+title:
+username:
+account: simonroessig
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8372425
+bundleId: 6871291
+url: https://simonroessig.shinyapps.io/stiffness/
+when: 1677007822.78093
+lastSyncTime: 1677007822.78093
+asMultiple: FALSE
+asStatic: FALSE

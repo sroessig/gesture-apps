@@ -1,0 +1,13 @@
+name: activation
+title: activation
+username:
+account: simonroessig
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8364888
+bundleId: 6874604
+url: https://simonroessig.shinyapps.io/activation/
+when: 1677074036.4786
+lastSyncTime: 1677074036.4786
+asMultiple: FALSE
+asStatic: FALSE

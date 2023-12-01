@@ -1,0 +1,156 @@
+library(shiny)
+library(tidyverse)
+library(patchwork)
+
+red = "#cc0000"
+  
+# Function to solve the gesture
+solve_gesture <- function(max_t, k) {
+  # time step
+  dt <- 0.01
+  
+  # empty vectors for position and velocity
+  X <- c()
+  V <- c()
+  
+  # initial states
+  X[1] <- 0
+  V[1] <- 0
+  
+  # Gesture
+  TG <- -1
+  KG <- k
+  
+  # Neutral attractor
+  TN <- 0
+  KN <- 6
+  
+  # activation function
+  ae <- 450
+  A <- rep(0, max_t)
+  r <- 30
+  A[100:(99 + r)] <- cumsum(rep(1 / r, r))
+  A[(100 + r):(ae - r)] <- 1
+  A[(ae - r):(ae - 1)] <- 1 - cumsum(rep(1 / r, r))
+  
+  TM <- seq(1, max_t)
+  
+  # let gesture evolve
+  for (t in TM[2:length(TM)]) {
+    Tt <- A[t] * TG + (1 - A[t]) * TN
+    Kt <- A[t] * KG + (1 - A[t]) * KN
+    B <- 2 * sqrt(Kt)
+    dx <- V[t - 1]
+    X[t] <- X[t - 1] + dt * dx
+    dv <- -B * V[t - 1] - Kt * (X[t - 1] - Tt)
+    V[t] <- V[t - 1] + dt * dv
+  }
+  data.frame(X, V, A, TM, ae)
+}
+
+# Minima, maxima, and steps of parameters
+k_min <- 5
+k_max <- 12
+k_step <- 0.5
+max_t  <- 750
+
+# If data should be generated on the fly.
+# Otherwise it is loaded
+generate_data <- T
+
+if (generate_data) {
+  df <- data.frame()
+  for (k in seq(k_min, k_max, k_step)) {
+    k <- round(k, 1)
+    G <- solve_gesture(max_t, k)
+    df <- rbind(df, data.frame(k, G))
+  }
+  write.csv(df, "data.csv")
+} else {
+  df <- read.csv("data.csv")
+}
+
+slider_styling <- HTML(
+  ".js-irs-0 .irs-single, .js-irs-0 .irs-bar-edge, .js-irs-0 .irs-bar {background: #cc0000;  border-top: 1px solid #cc0000; border-bottom: 1px solid #cc0000}"
+)
+
+# UI of the app
+ui <- fluidPage(titlePanel(""),
+                tags$style(slider_styling),
+                fluidRow(
+                  column(3,
+                         #HTML("<p>This slider lets you change the stiffness of the red opening gesture. 
+                         #The stiffness of the grey opening gesture remains fixed at 7. 
+                         #You can observe the differences in the position and velocity plots.
+                         #</p>"),
+                         wellPanel(
+                           h4("Stiffness of red opening gesture", style = "color: #cc0000"),
+                           sliderInput(
+                             inputId = "k",
+                             label = "",
+                             min = k_min,
+                             max = k_max,
+                             step = k_step,
+                             value = 7
+                           )
+                         )),
+                  column(5,
+                         plotOutput(outputId = "evoPlot", height = "650px"))
+                ))
+
+# Server function of the shiny app that generates the plot
+server <- function(input, output) {
+  output$evoPlot <- renderPlot({
+    
+    # Get correct gestures from the data frame
+    d1 <-
+      df %>% filter(k == input$k) %>%
+      mutate(type = "modified")
+    d2 <-
+      df %>% filter(k == 7) %>%
+      mutate(type = "reference")
+    
+    d <- rbind(d1, d2)
+    
+    ae1 <- unique(d1$ae)
+    ae2 <- unique(d2$ae)
+    
+    
+    layout(matrix(c(1,2,3), ncol=1), widths=c(3,3,3), heights=c(1,2,2), TRUE) 
+    par(mar = c(3,3,2,1), cex = 1)
+    
+    plot(d1$TM, d1$A*2.1, type = "n", yaxt = "n", ann = F)
+    rect(xleft = 100, xright = ae1, ybottom = 0, ytop = 1, col = rgb(0.8,0,0,0.3), border = red)
+    text(x = 100+(ae1-100)/2, y = 0.5, labels = "labial opening")
+    rect(xleft = ae1, xright = max_t, ybottom = 0, ytop = 1, col = rgb(0.8,0,0,0.3), border = red)
+    text(x = ae1+(max_t-ae1)/2, y = 0.5, labels = "labial closure")
+    rect(xleft = 100, xright = ae2, ybottom = 1.1, ytop = 2.1, col = "lightgrey", border = "dimgrey")
+    text(x = 100+(ae2-100)/2, y = 1.6, labels = "labial opening")
+    rect(xleft = ae2, xright = max_t, ybottom = 1.1, ytop = 2.1, col = "lightgrey", border = "dimgrey")
+    text(x = ae1+(max_t-ae1)/2, y = 1.6, labels = "labial closure")
+    title(main = "gestural score (activations)", line = 0.5, adj = 0)
+    
+    plot(d1$TM, d1$X, type = "n", xlab = "", ylab = "")
+    grid(nx = NULL,
+         ny = NULL,
+         lty = 2, col = "grey", lwd = 0.7)
+    lines(d1$TM, d1$X, type = "l", col = red)
+    lines(d2$TM, d2$X, col = "dimgrey")
+    title(ylab = "position", line = 2)
+    title(main = "position", line = 0.5, adj = 0)
+    
+    
+    plot(d1$TM, d1$V, type = "n", ylim = c(-1.3, 1.3), xlab = "", ylab = "")
+    grid(nx = NULL,
+         ny = NULL,
+         lty = 2, col = "grey", lwd = 0.7)
+    lines(d1$TM, d1$V, type = "l", col = red)
+    lines(d2$TM, d2$V, col = "dimgrey")
+    title(ylab = "absolute velocity", line = 2)
+    title(xlab = "simulated time", line = 2)
+    title(main = "absolute velocity", line = 0.5, adj = 0)
+    
+  })
+}
+
+shinyApp(ui = ui, server = server)

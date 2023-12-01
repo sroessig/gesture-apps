@@ -1,0 +1,13 @@
+name: target
+title: target
+username:
+account: simonroessig
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 8381753
+bundleId: 6874619
+url: https://simonroessig.shinyapps.io/target/
+when: 1677074252.04101
+lastSyncTime: 1677074252.04102
+asMultiple: FALSE
+asStatic: FALSE
